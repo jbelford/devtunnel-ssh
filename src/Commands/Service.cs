@@ -43,7 +43,7 @@ internal static class ServiceCommand
 
     private static async Task<int> InstallAsync(string[] args)
     {
-        var f = Flags.Parse(args, "system-sshd", "no-wsl-boot", "allow-wsl-root");
+        var f = Flags.Parse(args, "system-sshd", "no-wsl-boot", "allow-root");
         if (args.Any(a => a is "-h" or "--help" or "help")) { PrintUsage(); return 0; }
         var port = f.Int("port", 2222);
         var loginUser = f.Str("user");
@@ -54,7 +54,7 @@ internal static class ServiceCommand
         var noWslBoot = f.Bool("no-wsl-boot", false);
         var ct = CancellationToken.None;
 
-        var allowWslRoot = HostCommand.ValidateRootFlag(f,
+        var allowRoot = HostCommand.ValidateRootFlag(f,
             string.IsNullOrEmpty(loginUser) ? Cli.CurrentUser() : loginUser,
             systemSshd);
         Paths.EnsureAll();
@@ -68,7 +68,7 @@ internal static class ServiceCommand
         if (!string.IsNullOrEmpty(tunnelId)) { hostArgs.Add("--tunnel"); hostArgs.Add(tunnelId); }
         if (!string.IsNullOrEmpty(expiration)) { hostArgs.Add("--expiration"); hostArgs.Add(expiration); }
         if (systemSshd) hostArgs.Add("--system-sshd");
-        if (allowWslRoot) hostArgs.Add("--allow-wsl-root");
+        if (allowRoot) hostArgs.Add("--allow-root");
 
         var m = ServiceManager.New();
         var cfg = new ServiceConfig(Cli.SelfPath(), hostArgs, ServiceManager.DefaultEnv());
@@ -108,7 +108,7 @@ USAGE:
 SUBCOMMANDS:
     install    Register and start the host service (same flags as `dtssh host`:
                --port, --user, --alias, --tunnel, --expiration, --system-sshd,
-               --allow-wsl-root (key-only root SSH inside WSL; requires root)).
+               --allow-root (key-only root SSH on Linux; requires root)).
                Inside WSL it also registers a hidden Windows Startup launcher so
                the distro (and this service) auto-boot at logon; opt out with
                --no-wsl-boot.

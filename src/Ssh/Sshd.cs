@@ -35,7 +35,7 @@ internal sealed class Sshd
 
     // Generates the host key, authorized_keys and hardened sshd_config for a
     // dedicated instance authorizing exactly one client public key.
-    public static async Task<Sshd> PrepareAsync(int port, string clientPubKey, bool allowWslRoot = false, CancellationToken ct = default)
+    public static async Task<Sshd> PrepareAsync(int port, string clientPubKey, bool allowRoot = false, CancellationToken ct = default)
     {
         Paths.EnsureDir(Paths.HostDir());
         var portable = OperatingSystem.IsWindows()
@@ -79,7 +79,7 @@ internal sealed class Sshd
         b.Append("PubkeyAuthentication yes\n");
         b.Append("PasswordAuthentication no\n");
         b.Append("KbdInteractiveAuthentication no\n");
-        b.Append(allowWslRoot ? "PermitRootLogin prohibit-password\n" : "PermitRootLogin no\n");
+        b.Append(allowRoot ? "PermitRootLogin prohibit-password\n" : "PermitRootLogin no\n");
         // UsePAM is not supported by Windows OpenSSH; emit it only elsewhere.
         if (!OperatingSystem.IsWindows())
             b.Append("UsePAM no\n");

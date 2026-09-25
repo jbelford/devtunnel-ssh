@@ -21,7 +21,7 @@ internal static class HostCommand
 
     public static async Task<int> RunAsync(string[] args)
     {
-        var f = Flags.Parse(args, "system-sshd", "persist", "allow-wsl-root");
+        var f = Flags.Parse(args, "system-sshd", "persist", "allow-root");
         var port = f.Int("port", 2222);
         var loginUser = f.Str("user");
         var aliasFlag = f.Str("alias");
@@ -33,7 +33,7 @@ internal static class HostCommand
         if (args.Any(a => a is "-h" or "--help" or "help")) { PrintUsage(); return 0; }
 
         var uname = string.IsNullOrEmpty(loginUser) ? Cli.CurrentUser() : loginUser;
-        var allowWslRoot = ValidateRootFlag(f, uname, systemSshd);
+        var allowRoot = ValidateRootFlag(f, uname, systemSshd);
         Paths.EnsureAll();
         var ct = CancellationToken.None;
         _ = await DevtunnelCli.EnsureBinaryAsync(ct).ConfigureAwait(false);
@@ -66,7 +66,7 @@ internal static class HostCommand
         }
         else
         {
-            var cfg = await Sshd.PrepareAsync(port, clientPub, allowWslRoot, ct).ConfigureAwait(false);
+            var cfg = await Sshd.PrepareAsync(port, clientPub, allowRoot, ct).ConfigureAwait(false);
             await cfg.ValidateAsync(ct).ConfigureAwait(false);
             var hk = await KeyStore.EnsureHostKeyAsync(ct: ct).ConfigureAwait(false);
             hostPub = hk.ReadPublicKey();
@@ -96,14 +96,14 @@ internal static class HostCommand
 
     internal static bool ValidateRootFlag(Flags f, string user, bool systemSshd)
     {
-        if (!f.Has("allow-wsl-root")) return false;
+        if (!f.Has("allow-root")) return false;
         if (f.Positionals.Count != 0)
-            throw new DtsshException("--allow-wsl-root does not take a separate value; use --allow-wsl-root=false to disable it");
-        if (f.Str("allow-wsl-root") is not ("true" or "false" or "1" or "0" or "yes" or "no" or "on" or "off"))
-            throw new DtsshException("--allow-wsl-root requires a boolean value (true or false)");
-        var enabled = f.Bool("allow-wsl-root", false);
-        if (enabled && (!Wsl.Wsl.IsWslKernel() || !IsRootProcess() || user != "root" || systemSshd))
-            throw new DtsshException("--allow-wsl-root requires WSL, a root host process, SSH user root, and the dedicated sshd (not --system-sshd)");
+            throw new DtsshException("--allow-root does not take a separate value; use --allow-root=false to disable it");
+        if (f.Str("allow-root") is not ("true" or "false" or "1" or "0" or "yes" or "no" or "on" or "off"))
+            throw new DtsshException("--allow-root requires a boolean value (true or false)");
+        var enabled = f.Bool("allow-root", false);
+        if (enabled && (!IsRootProcess() || user != "root" || systemSshd))
+            throw new DtsshException("--allow-root requires Linux, a root host process, SSH user root, and the dedicated sshd (not --system-sshd)");
         return enabled;
     }
 
@@ -314,8 +314,8 @@ OPTIONS:
     --tunnel ID       reuse an existing tunnel id (default: create one)
     --expiration D    tunnel expiration, e.g. 8h or 2d
     --system-sshd     use the system sshd/authorized_keys instead of a dedicated one
-    --allow-wsl-root  allow key-only root login to the dedicated sshd, only when
-                      running as root inside WSL (default: root login disabled)
+    --allow-root      allow key-only root login to the dedicated sshd, only when
+                      running as root on Linux (default: root login disabled)
     --persist         reuse a stable identity + tunnel across restarts (services)
 
 """);
