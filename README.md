@@ -61,6 +61,14 @@ dtssh service install     # same flags as `dtssh host`
 dtssh service status      # or: logs, restart, stop, start, uninstall
 ```
 
+For the default WSL `root` user only, explicitly opt in to key-only root
+SSH with `dtssh host --allow-wsl-root` or
+`dtssh service install --allow-wsl-root` (run dtssh as root inside WSL).
+The flag is incompatible with `--system-sshd` or a non-root SSH user.
+Without it, the dedicated sshd denies root login. Password and
+keyboard-interactive authentication remain disabled in either mode; the
+dedicated sshd stays bound to loopback and never changes the system sshd.
+
 ## Commands
 
 | Command | What it does |
@@ -98,3 +106,9 @@ single self-contained NativeAOT binary.
 ```bash
 dotnet publish -c Release -r linux-x64 -p:PublishAot=true
 ```
+
+Run the focused WSL root-login regression check with
+`dotnet run --project checks/RootLoginCheck.csproj -c Release`.
+Set `DTSSH_CHECK_SSHD=/usr/sbin/sshd` to also verify the generated
+settings with `sshd -T` (requires OpenSSH server and its SFTP subsystem).
+Set `DTSSH_CHECK_SFTP` if the SFTP binary is not at `/usr/lib/openssh/sftp-server`.

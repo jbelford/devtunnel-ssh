@@ -13,3 +13,5 @@
 # .NET build output
 /bin/
 /obj/
+/checks/bin/
+/checks/obj/

@@ -9,6 +9,24 @@ namespace Dtssh.Wsl;
 // command and is not needed for hosting itself.)
 internal static class Wsl
 {
+    // For security-sensitive decisions, require evidence from the running kernel,
+    // not WSL_* environment variables (which can be set outside WSL).
+    public static bool IsWslKernel()
+    {
+        if (!OperatingSystem.IsLinux()) return false;
+        foreach (var p in new[] { "/proc/sys/kernel/osrelease", "/proc/version" })
+        {
+            try
+            {
+                var s = File.ReadAllText(p).ToLowerInvariant();
+                if (s.Contains("microsoft") || s.Contains("wsl")) return true;
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+        return false;
+    }
+
     public static bool IsWsl()
     {
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WSL_DISTRO_NAME")) ||
