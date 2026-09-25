@@ -17,7 +17,7 @@ internal static class HostCommand
 {
     public static async Task<int> RunAsync(string[] args)
     {
-        var f = Flags.Parse(args, "system-sshd", "persist");
+        var f = Flags.Parse(args, "system-sshd", "persist", "permit-root-login");
         var port = f.Int("port", 2222);
         var loginUser = f.Str("user");
         var aliasFlag = f.Str("alias");
@@ -28,11 +28,12 @@ internal static class HostCommand
 
         if (args.Any(a => a is "-h" or "--help" or "help")) { PrintUsage(); return 0; }
 
+        var uname = string.IsNullOrEmpty(loginUser) ? Cli.CurrentUser() : loginUser;
+        var permitRootLogin = RootLoginEnabled(f, uname, systemSshd);
         Paths.EnsureAll();
         var ct = CancellationToken.None;
         _ = await DevtunnelCli.EnsureBinaryAsync(ct).ConfigureAwait(false);
 
-        var uname = string.IsNullOrEmpty(loginUser) ? Cli.CurrentUser() : loginUser;
         var hostName = Cli.Hostname();
         var al = aliasFlag;
         if (string.IsNullOrEmpty(al))
@@ -61,7 +62,7 @@ internal static class HostCommand
         }
         else
         {
-            var cfg = await Sshd.PrepareAsync(port, clientPub, ct).ConfigureAwait(false);
+            var cfg = await Sshd.PrepareAsync(port, clientPub, permitRootLogin, ct).ConfigureAwait(false);
             await cfg.ValidateAsync(ct).ConfigureAwait(false);
             var hk = await KeyStore.EnsureHostKeyAsync(ct: ct).ConfigureAwait(false);
             hostPub = hk.ReadPublicKey();
@@ -85,6 +86,14 @@ internal static class HostCommand
         {
             TryKill(sshdProc);
         }
+    }
+
+    internal static bool RootLoginEnabled(Flags f, string user, bool systemSshd)
+    {
+        if (f.Has("permit-root-login") &&
+            (!OperatingSystem.IsLinux() || Environment.UserName != "root" || user != "root" || systemSshd))
+            throw new DtsshException("--permit-root-login requires Linux root, SSH user root, and the dedicated sshd");
+        return f.Bool("permit-root-login", false);
     }
 
     private static async Task<int> HostLoopAsync(
@@ -294,6 +303,8 @@ OPTIONS:
     --tunnel ID       reuse an existing tunnel id (default: create one)
     --expiration D    tunnel expiration, e.g. 8h or 2d
     --system-sshd     use the system sshd/authorized_keys instead of a dedicated one
+    --permit-root-login  set PermitRootLogin yes in the dedicated Linux sshd
+                         (requires root; default: no)
     --persist         reuse a stable identity + tunnel across restarts (services)
 
 """);
