@@ -61,12 +61,11 @@ dtssh service install     # same flags as `dtssh host`
 dtssh service status      # or: logs, restart, stop, start, uninstall
 ```
 
-On Linux, run dtssh as root and explicitly opt in to key-only root SSH with
-`dtssh host --allow-root` or `dtssh service install --allow-root`.
-The flag is incompatible with `--system-sshd` or a non-root SSH user, and is
-unavailable on Windows and macOS. Without it, the dedicated sshd denies root
-login. Password and keyboard-interactive authentication remain disabled; the
-dedicated sshd stays bound to loopback and never changes the system sshd.
+On Linux, `dtssh host --permit-root-login` or
+`dtssh service install --permit-root-login` sets `PermitRootLogin yes` in the
+dedicated sshd config (default: `no`). Run the host as root to serve root
+logins. This flag cannot configure the system sshd or run on Windows/macOS.
+Password and keyboard-interactive authentication remain disabled.
 
 ## Commands
 
