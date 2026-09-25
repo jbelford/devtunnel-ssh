@@ -33,11 +33,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="checks/**/*.cs" />
-    <InternalsVisibleTo Include="RootLoginCheck" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!-- Preserve SSH types/ctors activated by reflection under NativeAOT. -->
     <TrimmerRootDescriptor Include=".config/TrimmerRoots.xml" />
   </ItemGroup>

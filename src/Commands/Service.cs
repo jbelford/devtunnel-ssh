@@ -45,20 +45,30 @@ internal static class ServiceCommand
     {
         var f = Flags.Parse(args, "system-sshd", "no-wsl-boot", "allow-wsl-root");
         if (args.Any(a => a is "-h" or "--help" or "help")) { PrintUsage(); return 0; }
+        var port = f.Int("port", 2222);
         var loginUser = f.Str("user");
+        var alias = f.Str("alias");
+        var tunnelId = f.Str("tunnel");
+        var expiration = f.Str("expiration");
         var systemSshd = f.Bool("system-sshd", false);
         var noWslBoot = f.Bool("no-wsl-boot", false);
         var ct = CancellationToken.None;
 
         var allowWslRoot = HostCommand.ValidateRootFlag(f,
             string.IsNullOrEmpty(loginUser) ? Cli.CurrentUser() : loginUser,
-            systemSshd, Wsl.Wsl.IsWslKernel(), HostCommand.IsRootProcess());
+            systemSshd);
         Paths.EnsureAll();
         _ = await DevtunnelCli.EnsureBinaryAsync(ct).ConfigureAwait(false);
 
         // Reconstruct the `dtssh host` args. --persist reuses one tunnel + a stable
         // identity across restarts.
-        var hostArgs = BuildHostArgs(f, allowWslRoot);
+        var hostArgs = new List<string> { "--persist", "--port", port.ToString() };
+        if (!string.IsNullOrEmpty(loginUser)) { hostArgs.Add("--user"); hostArgs.Add(loginUser); }
+        if (!string.IsNullOrEmpty(alias)) { hostArgs.Add("--alias"); hostArgs.Add(alias); }
+        if (!string.IsNullOrEmpty(tunnelId)) { hostArgs.Add("--tunnel"); hostArgs.Add(tunnelId); }
+        if (!string.IsNullOrEmpty(expiration)) { hostArgs.Add("--expiration"); hostArgs.Add(expiration); }
+        if (systemSshd) hostArgs.Add("--system-sshd");
+        if (allowWslRoot) hostArgs.Add("--allow-wsl-root");
 
         var m = ServiceManager.New();
         var cfg = new ServiceConfig(Cli.SelfPath(), hostArgs, ServiceManager.DefaultEnv());
@@ -86,16 +96,6 @@ internal static class ServiceCommand
             }
         }
         return 0;
-    }
-
-    internal static List<string> BuildHostArgs(Flags f, bool allowWslRoot)
-    {
-        var hostArgs = new List<string> { "--persist", "--port", f.Int("port", 2222).ToString() };
-        foreach (var name in new[] { "user", "alias", "tunnel", "expiration" })
-            if (f.Str(name) is { Length: > 0 } value) { hostArgs.Add("--" + name); hostArgs.Add(value); }
-        if (f.Bool("system-sshd", false)) hostArgs.Add("--system-sshd");
-        if (allowWslRoot) hostArgs.Add("--allow-wsl-root");
-        return hostArgs;
     }
 
     private static void PrintUsage() => Console.Error.Write(

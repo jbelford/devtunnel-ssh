@@ -106,9 +106,3 @@ single self-contained NativeAOT binary.
 ```bash
 dotnet publish -c Release -r linux-x64 -p:PublishAot=true
 ```
-
-Run the focused WSL root-login regression check with
-`dotnet run --project checks/RootLoginCheck.csproj -c Release`.
-Set `DTSSH_CHECK_SSHD=/usr/sbin/sshd` to also verify the generated
-settings with `sshd -T` (requires OpenSSH server and its SFTP subsystem).
-Set `DTSSH_CHECK_SFTP` if the SFTP binary is not at `/usr/lib/openssh/sftp-server`.
