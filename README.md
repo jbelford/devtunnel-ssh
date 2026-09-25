@@ -63,8 +63,9 @@ dtssh service status      # or: logs, restart, stop, start, uninstall
 
 On Linux, `dtssh host --permit-root-login` or
 `dtssh service install --permit-root-login` sets `PermitRootLogin yes` in the
-dedicated sshd config (default: `no`). Run the host as root to serve root
-logins. This flag cannot configure the system sshd or run on Windows/macOS.
+dedicated sshd config (default: `no`). Only a root process targeting SSH user
+`root` can use the flag; it cannot configure the system sshd or run on
+Windows/macOS.
 Password and keyboard-interactive authentication remain disabled.
 
 ## Commands

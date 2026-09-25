@@ -54,9 +54,8 @@ internal static class ServiceCommand
         var noWslBoot = f.Bool("no-wsl-boot", false);
         var ct = CancellationToken.None;
 
-        var permitRootLogin = f.Bool("permit-root-login", false);
-        if (permitRootLogin && (systemSshd || !OperatingSystem.IsLinux()))
-            throw new DtsshException("--permit-root-login requires Linux and the dedicated sshd");
+        var permitRootLogin = HostCommand.RootLoginEnabled(f,
+            string.IsNullOrEmpty(loginUser) ? Cli.CurrentUser() : loginUser, systemSshd);
         Paths.EnsureAll();
         _ = await DevtunnelCli.EnsureBinaryAsync(ct).ConfigureAwait(false);
 
@@ -108,7 +107,7 @@ USAGE:
 SUBCOMMANDS:
     install    Register and start the host service (same flags as `dtssh host`:
                --port, --user, --alias, --tunnel, --expiration, --system-sshd,
-               --permit-root-login (set PermitRootLogin yes on Linux).
+               --permit-root-login (set PermitRootLogin yes for Linux root).
                Inside WSL it also registers a hidden Windows Startup launcher so
                the distro (and this service) auto-boot at logon; opt out with
                --no-wsl-boot.

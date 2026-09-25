@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Dtssh.Auth;
 using Dtssh.Connections;
 using Dtssh.Discovery;
@@ -15,6 +16,9 @@ namespace Dtssh.Commands;
 // devtunnel account finds it with `dtssh discover` — no bundle to copy.
 internal static class HostCommand
 {
+    [DllImport("libc")]
+    private static extern uint geteuid();
+
     public static async Task<int> RunAsync(string[] args)
     {
         var f = Flags.Parse(args, "system-sshd", "persist", "permit-root-login");
@@ -28,14 +32,12 @@ internal static class HostCommand
 
         if (args.Any(a => a is "-h" or "--help" or "help")) { PrintUsage(); return 0; }
 
-        var permitRootLogin = f.Bool("permit-root-login", false);
-        if (permitRootLogin && (systemSshd || !OperatingSystem.IsLinux()))
-            throw new DtsshException("--permit-root-login requires Linux and the dedicated sshd");
+        var uname = string.IsNullOrEmpty(loginUser) ? Cli.CurrentUser() : loginUser;
+        var permitRootLogin = RootLoginEnabled(f, uname, systemSshd);
         Paths.EnsureAll();
         var ct = CancellationToken.None;
         _ = await DevtunnelCli.EnsureBinaryAsync(ct).ConfigureAwait(false);
 
-        var uname = string.IsNullOrEmpty(loginUser) ? Cli.CurrentUser() : loginUser;
         var hostName = Cli.Hostname();
         var al = aliasFlag;
         if (string.IsNullOrEmpty(al))
@@ -88,6 +90,14 @@ internal static class HostCommand
         {
             TryKill(sshdProc);
         }
+    }
+
+    internal static bool RootLoginEnabled(Flags f, string user, bool systemSshd)
+    {
+        if (f.Has("permit-root-login") &&
+            (!OperatingSystem.IsLinux() || geteuid() != 0 || user != "root" || systemSshd))
+            throw new DtsshException("--permit-root-login requires Linux root, SSH user root, and the dedicated sshd");
+        return f.Bool("permit-root-login", false);
     }
 
     private static async Task<int> HostLoopAsync(
@@ -298,7 +308,7 @@ OPTIONS:
     --expiration D    tunnel expiration, e.g. 8h or 2d
     --system-sshd     use the system sshd/authorized_keys instead of a dedicated one
     --permit-root-login  set PermitRootLogin yes in the dedicated Linux sshd
-                         (default: no)
+                         (requires root; default: no)
     --persist         reuse a stable identity + tunnel across restarts (services)
 
 """);
