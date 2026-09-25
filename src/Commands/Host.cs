@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Dtssh.Auth;
 using Dtssh.Connections;
 using Dtssh.Discovery;
@@ -16,9 +15,6 @@ namespace Dtssh.Commands;
 // devtunnel account finds it with `dtssh discover` — no bundle to copy.
 internal static class HostCommand
 {
-    [DllImport("libc")]
-    private static extern uint geteuid();
-
     public static async Task<int> RunAsync(string[] args)
     {
         var f = Flags.Parse(args, "system-sshd", "persist", "permit-root-login");
@@ -95,7 +91,7 @@ internal static class HostCommand
     internal static bool RootLoginEnabled(Flags f, string user, bool systemSshd)
     {
         if (f.Has("permit-root-login") &&
-            (!OperatingSystem.IsLinux() || geteuid() != 0 || user != "root" || systemSshd))
+            (!OperatingSystem.IsLinux() || Environment.UserName != "root" || user != "root" || systemSshd))
             throw new DtsshException("--permit-root-login requires Linux root, SSH user root, and the dedicated sshd");
         return f.Bool("permit-root-login", false);
     }
