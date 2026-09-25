@@ -107,7 +107,7 @@ USAGE:
 SUBCOMMANDS:
     install    Register and start the host service (same flags as `dtssh host`:
                --port, --user, --alias, --tunnel, --expiration, --system-sshd,
-               --permit-root-login (set PermitRootLogin yes for Linux root).
+               --permit-root-login for Linux root on the dedicated sshd).
                Inside WSL it also registers a hidden Windows Startup launcher so
                the distro (and this service) auto-boot at logon; opt out with
                --no-wsl-boot.
