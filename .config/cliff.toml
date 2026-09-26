@@ -34,7 +34,7 @@ footer = """
 """
 trim = true
 postprocessors = [
-  { pattern = '\$REPO_URL', replace = "https://github.com/bmiddha/devtunnel-ssh" },
+  { pattern = '\$REPO_URL', replace = "https://github.com/jbelford/devtunnel-ssh" },
 ]
 
 [git]
@@ -44,7 +44,7 @@ filter_unconventional = true
 split_commits = false
 commit_preprocessors = [
   # Turn "(#123)" PR/issue refs into links.
-  { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/bmiddha/devtunnel-ssh/issues/${2}))" },
+  { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/jbelford/devtunnel-ssh/issues/${2}))" },
 ]
 commit_parsers = [
   { message = "^feat", group = "<!-- 0 -->🚀 Features" },
@@ -66,5 +66,5 @@ topo_order = false
 sort_commits = "oldest"
 
 [git.remote.github]
-owner = "bmiddha"
+owner = "jbelford"
 repo = "devtunnel-ssh"

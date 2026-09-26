@@ -1,18 +1,8 @@
 name: 🚀 release (prepare)
 
-# Manually-triggered: computes the next version (from Conventional Commits by
-# default), bumps Dtssh.csproj, regenerates CHANGELOG.md, and opens a
-# `chore(release): vX` pull request set to auto-merge (rebase). Once its required
-# checks pass it merges itself, triggering release-publish.yml, which tags,
-# builds, and publishes the GitHub Release.
-#
-# The release PR is opened with a GitHub App installation token (not the default
-# GITHUB_TOKEN), so the required checks (build.yml, conventional.yml) run
-# automatically instead of waiting for a manual "Approve workflows to run".
-# Configure a GitHub App (Contents: write, Pull requests: write) installed on
-# this repo, and add its App ID and private key as the repo secrets
-# RELEASE_APP_ID and RELEASE_APP_PRIVATE_KEY. Also enable "Allow auto-merge" in
-# the repository settings so the PR can merge itself once checks pass.
+# Manually-triggered: computes the next version, bumps Dtssh.csproj,
+# regenerates CHANGELOG.md, and opens a release PR for review. Approve the
+# PR's workflow runs and merge it manually to trigger release-publish.yml.
 on:
   workflow_dispatch:
     inputs:
@@ -37,6 +27,7 @@ concurrency:
 
 permissions:
   contents: write
+  issues: write
   pull-requests: write
 
 jobs:
@@ -44,18 +35,10 @@ jobs:
     name: 📝 Prepare release PR
     runs-on: ubuntu-latest
     steps:
-      - name: 🔑 Mint GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
       - name: 📥 Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
 
       - name: 🧰 Install git-cliff
         uses: taiki-e/install-action@v2
@@ -107,7 +90,7 @@ jobs:
 
       - name: 🔀 Open release pull request
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.bump.outputs.tag }}
         run: |
           set -euo pipefail
@@ -116,11 +99,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
           git commit -am "chore(release): $TAG"
-          git push --force-with-lease origin "$branch"
+          git push origin "$branch"
 
-          # Ensure the labels exist (ignore "already exists").
-          gh label create release --color 0e8a16 --description "Release PR" 2>/dev/null || true
-          gh label create prerelease --color fbca04 --description "Pre-release" 2>/dev/null || true
+          gh label create release --color 0e8a16 --description "Release PR" --force
+          gh label create prerelease --color fbca04 --description "Pre-release" --force
 
           labels="release"
           if [ "${{ inputs.prerelease }}" = "true" ]; then labels="release,prerelease"; fi
@@ -128,8 +110,9 @@ jobs:
           {
             echo "Automated release for **$TAG**."
             echo
-            echo "Merging this PR (rebase) tags \`$TAG\`, builds every platform, and"
-            echo "publishes the GitHub Release. Review the changelog below."
+            echo "Review the changelog and approve any pending workflow runs."
+            echo "Merging this PR tags \`$TAG\` and publishes the GitHub Release"
+            echo "after the main-branch build succeeds."
             echo
             echo "---"
             echo
@@ -140,7 +123,3 @@ jobs:
             --title "chore(release): $TAG" \
             --body-file pr-body.md \
             --label "$labels"
-
-          # Auto-merge (rebase) once all required checks pass. Requires
-          # "Allow auto-merge" enabled in the repo settings.
-          gh pr merge "$branch" --auto --rebase

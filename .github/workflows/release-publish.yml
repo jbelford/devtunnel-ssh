@@ -15,9 +15,11 @@ permissions:
 jobs:
   wait-build:
     name: ⏳ Wait for build
-    # Only for merged release PRs.
+    # Only for a manually merged release PR from this repository.
     if: >-
       github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'release/v') &&
       contains(github.event.pull_request.labels.*.name, 'release')
     runs-on: ubuntu-latest
     permissions:
@@ -67,19 +69,11 @@ jobs:
     outputs:
       tag: ${{ steps.info.outputs.tag }}
     steps:
-      - name: 🔑 Mint GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
       - name: 📥 Checkout
         uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
 
       - name: 🏷️ Read version and create tag
         id: info

@@ -31,6 +31,26 @@ need OpenSSH (`ssh`; plus `sshd` on Linux/macOS hosts). On Windows, dtssh
 downloads a pinned portable Win32-OpenSSH build on first host startup. The
 `devtunnel` CLI is auto-downloaded on first use.
 
+### Releases from this fork
+
+With Actions enabled and permission for workflows to open pull requests, the
+repository owner can run **release (prepare)** on `main` to open a
+version/changelog pull request. Approve its workflow runs, review the changes,
+and merge it manually; **release (publish)** then uses the successful
+main-branch build to tag and publish the binaries and checksums. The first
+release here must use a tag newer than the inherited `v0.2.2`.
+
+From a checkout of this fork, install its releases instead of the upstream
+defaults by selecting the repository explicitly:
+
+```bash
+REPO=jbelford/devtunnel-ssh bash scripts/install-release.sh
+```
+
+```powershell
+pwsh -File ./scripts/install-release.ps1 -Repo jbelford/devtunnel-ssh
+```
+
 ## Use it
 
 On the **host** (the machine you want to reach):
